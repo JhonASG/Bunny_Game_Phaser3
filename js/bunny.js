@@ -1,3 +1,15 @@
+import { AnimationsPlayer } from "./animations/animsPlayer.js";
+import { drawPlayers } from "./config/configDrawObjs.js";
+import { Movement } from "./controller/movementPlayer.js";
+import { drawingObjs } from "./drawer/drawObjs.js";
+
+let rabbit = [];
+let playerQuantity = 1;
+let goUpP1 = false;
+let goDownP1 = false;
+let stateAddMovement = true;
+let stateAddMovementDown = true;
+
 class MainScene extends Phaser.Scene {
     constructor() {
         super("gameScene");
@@ -28,9 +40,65 @@ class MainScene extends Phaser.Scene {
     }
     create () {
         const map = this.add.tilemap("tilemap");
-        const tileset = map.add
+        const tileset = map.addTilesetImage("Tilemap", "gameTiles");
+        
+        map.createLayer("Grass", tileset);
+        map.createLayer("YellowLines", tileset);
+        map.createLayer("GrayZone", tileset);
+        map.createLayer("WhiteLines", tileset);
+
+        const playerGame = new drawingObjs(
+            drawPlayers,
+            map
+        )
+        rabbit = playerGame.createPlayer(this.physics, playerQuantity);
+        rabbit[0].score = 0;
+
+        const animsRabbit = new AnimationsPlayer(
+            ["Up", "Down"],
+            "rabbit",
+            this.anims,
+            [
+                [24, 31],
+                [8, 15]
+            ],
+            10,
+            0
+        )
+        animsRabbit.CreateAnimationsPlayer();
     }
-    update () {}
+    update () {
+        let cursors = this.input.keyboard.createCursorKeys();
+        const movementPlayer = new Movement(
+            rabbit[0],
+            cursors.up,
+            cursors.down,
+            ["Up", "Down"],
+            goUpP1,
+            goDownP1
+        )
+        
+        if (cursors.up.isDown) {
+            if (stateAddMovement)
+            {
+                stateAddMovement = false;
+                movementPlayer.AddMovementPlayer();
+            }
+        } else if (cursors.down.isDown) {
+            if (stateAddMovementDown)
+            {
+                stateAddMovementDown = false;
+                movementPlayer.AddMovementPlayer();
+            }
+        }
+
+        if (cursors.up.isUp) {
+            stateAddMovement = true;
+        }
+        if (cursors.down.isUp) {
+            stateAddMovementDown = true;
+        }
+    }
 }
 class Menu extends Phaser.Scene {
     constructor() {
@@ -89,10 +157,6 @@ const config = {
     },
     physics: {
         default: 'arcade',
-        arcade: {
-            debug: false,
-            gravity: { y: 300 }
-        }
     }
 }
 new Phaser.Game(config);
