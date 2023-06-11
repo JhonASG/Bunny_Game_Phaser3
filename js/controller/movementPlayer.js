@@ -5,7 +5,8 @@ export class Movement {
         down,
         animsKey,
         btnup, 
-        btndown
+        btndown,
+        currentPosPlayer
     ) {
         this.player = player;
         this.up = up;
@@ -13,19 +14,34 @@ export class Movement {
         this.animsKey = animsKey;
         this.btnup = btnup;
         this.btndown = btndown;
+        this.currentPosPlayer = currentPosPlayer;
     }
     GetUpPlayerMovement (pos) {
         if (pos + 1 < posibleMoves.length) {
-            currentPosP1++;
-            return posibleMoves[currentPosP1];
+            if ( this.currentPosPlayer == 1 ) {
+                positionPlayerP1++;
+
+                return posibleMoves[positionPlayerP1];
+            } else if ( this.currentPosPlayer == 2 ) {
+                positionPlayerP2++;
+                
+                return posibleMoves[positionPlayerP2];
+            } 
         } else {
             return false;
         }
     }
     GetDownPlayerMovement (pos) {
         if (pos - 1 >= 0) {
-            currentPosP1--;
-            return posibleMoves[currentPosP1];
+            if ( this.currentPosPlayer == 1 ) {
+                positionPlayerP1--;
+
+                return posibleMoves[positionPlayerP1];
+            } else if ( this.currentPosPlayer == 2 ) {
+                positionPlayerP2--;
+                
+                return posibleMoves[positionPlayerP2];
+            }
         } else {
             return false;
         }
@@ -33,42 +49,33 @@ export class Movement {
     AddMovementPlayer () {
         // saltar
         if ( this.up.isDown || this.btnup ) {
-            if (canGoUP) {
-                canGoUP = false;
-                console.log("Go: " + canGoUP);
-                
-                const nextUpMove = this.GetUpPlayerMovement(currentPosP1);
-                
-                if (nextUpMove) {
-                    this.player.anims.play(this.animsKey[0], true);
-                    this.player.y = nextUpMove;
-                }
+            if ( this.currentPosPlayer == 1 ) {
+                nextUpMove = this.GetUpPlayerMovement(positionPlayerP1);
+            } else if ( this.currentPosPlayer == 2 ) {
+                nextUpMove = this.GetUpPlayerMovement(positionPlayerP2);
+            }
+
+            if (nextUpMove) {
+                this.player.anims.play(this.animsKey[0], true);
+                this.player.y = nextUpMove;
             }
         } else if (this.down.isDown || this.btndown) {
-            if (canGoDown) {
-                canGoDown = false;
-                
-                const nextDownMove = this.GetDownPlayerMovement(currentPosP1);
-                
-                if (nextDownMove) {
-                    this.player.anims.play(this.animsKey[1], true);
-                    this.player.y = nextDownMove;
-                }
+            if ( this.currentPosPlayer == 1 ) {
+                nextDownMove = this.GetDownPlayerMovement(positionPlayerP1);
+            } else if ( this.currentPosPlayer == 2 ) {
+                nextDownMove = this.GetDownPlayerMovement(positionPlayerP2);
             }
-        }
 
-        if ( this.up.isUp || !this.btnup ) {
-            canGoUP = true;
-        }
-
-        if ( this.down.isUp || !this.btndown ) {
-            canGoDown = true;
+            if (nextDownMove) {
+                this.player.anims.play(this.animsKey[1], true);
+                this.player.y = nextDownMove;
+            }
         }
     }
 }
 
 let posibleMoves = [570, 530, 485, 435, 385, 315, 265, 210, 165, 105, 65];
-let currentPosP1 = 0;
-let currentPosP2 = 0;
-let canGoUP = true;
-let canGoDown = true;
+let positionPlayerP1 = 0;
+let positionPlayerP2 = 0;
+let nextUpMove;
+let nextDownMove;

@@ -26,12 +26,12 @@ export class drawingObjs {
 
         return this.createplayers;
     }
-    createStars ( physics, quantity ) {
+    createCarrots ( physics, quantity ) {
         let stars;
 
         for (let q = 1; q <= quantity; q++) {
             stars = physics.add.group({
-                key: "star",
+                key: "carrot",
                 repeat: this.configObj[q].quantity,
                 setXY: { 
                     x: this.configObj[q].posX, 
