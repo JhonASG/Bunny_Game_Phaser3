@@ -16,6 +16,10 @@ let stateAddMovementDown = true;
 let stateAddMovementP2 = true;
 let stateAddMovementDownP2 = true;
 let preTimeText = "";
+let groupLeftVehicles = "";
+let groupRightVehicles = "";
+const arrayTypeVehicles = ["cars1", "cars2", "bigvehicles", "motorcycles"]; // Array contain types of vehicles
+const arrayCurrentTypeVehicles = ["cars1", "cars2", "bigvehicles", "motorcycles"]; // Array contain current types of vehicles
 
 class MainScene extends Phaser.Scene {
     constructor() {
@@ -140,7 +144,135 @@ class MainScene extends Phaser.Scene {
         const timeGame = addScorePlayers (this, "", 0x000000, "yellow", 350, 625, 325, 615, this.currentTime);
         this.txtTime = timeGame;
         this.updateTime();
+
+        //Creación de grupos respecto a la dirección de movimiento de los vehiculos
+        groupLeftVehicles = this.physics.add.group();
+        groupRightVehicles = this.physics.add.group();
+
+        //We add to every group its vehicles
+        const vehiclesType1 = groupLeftVehicles.create(
+            -100,
+            165,
+            this.randomCar(0),
+            this.randomSpriteCar(0)
+        )
+        this.randomVelocity( 0, vehiclesType1, 1 ); //Velocity movement of vehicle
+
+        const vehiclesType2 = groupLeftVehicles.create(
+            -100,
+            265,
+            this.randomCar(1),
+            this.randomSpriteCar(1)
+        )
+        this.randomVelocity( 1, vehiclesType2, 1 ); //Velocity movement of vehicle
+
+        const vehiclesType3 = groupRightVehicles.create(
+            900,
+            385,
+            this.randomCar(2),
+            this.randomSpriteCar(2)
+        )
+        this.randomVelocity( 2, vehiclesType3, -1 ); //Velocity movement of vehicle
+        vehiclesType3.flipX = true;
+
+        const vehiclesType4 = groupRightVehicles.create(
+            900,
+            485,
+            this.randomCar(3),
+            this.randomSpriteCar(3)
+        )
+        this.randomVelocity( 3, vehiclesType4, -1 ); //Velocity movement of vehicle
+        vehiclesType4.flipX = true;
+
+        //Create the limits of movemente every vehicle
+        const limit1 = this.add.rectangle(900, 325, 25, 480, 0x000000);
+        this.physics.add.existing(limit1); //Add physics object
+        this.physics.add.collider(groupLeftVehicles, limit1, this.newLeftCar, null, this); //Indentify the collision
+        limit1.body.setImmovable(true); //This limit is immovable
+
+        const limit2 = this.add.rectangle(-100, 325, 25, 480, 0x000000);
+        this.physics.add.existing(limit2); //Add physics
+        this.physics.add.collider(groupRightVehicles, limit2, this.newRightCar, null, this); //Indentify the collision
+        limit2.body.setImmovable(true); //This limit is immovable
+
+        //Add collision between vehicle and rabbits
+        this.physics.add.overlap(rabbit[0], groupRightVehicles, collisionRightCars, null, this);
+        this.physics.add.overlap(rabbit[0], groupLeftVehicles, collisionLeftCars, null, this);
+        
     }
+
+    newRightCar ( limit, element ) {
+        element.destroy(); //Remove
+
+        //Create new vehicle Right
+        const vehicleType = element.y == 385 ? 2 : 3;
+        const currentVehicle = groupRightVehicles.create(
+            900,
+            element.y,
+            this.randomCar(vehicleType),
+            this.randomSpriteCar(vehicleType)
+        )
+        this.randomVelocity( vehicleType, currentVehicle, -1 );
+        currentVehicle.flipX = true;
+    }
+
+    newLeftCar (limit, element) {
+        element.destroy(); //Remove vehicle what collision with the limit
+
+        //Create new vehicle Left
+        const vehicleType = element.y == 165 ? 0 : 1;
+        const currentVehicle = groupLeftVehicles.create(
+            -100,
+            element.y,
+            this.randomCar(vehicleType),
+            this.randomSpriteCar(vehicleType)
+        )
+        this.randomVelocity( vehicleType, currentVehicle, 1 );
+    }
+    
+    randomVelocity ( vehicleType, element, direction ) {
+        const vehicle = arrayCurrentTypeVehicles[vehicleType];
+
+        switch(vehicle) {
+            case "cars1":
+                element.setVelocityX( ( Math.random() * 220 + 160 ) * direction );
+            break;
+            case "cars2":
+                element.setVelocityX( ( Math.random() * 300 + 220 ) * direction );
+            break;
+            case "bigvehicles":
+                element.setVelocityX( ( Math.random() * 200 + 100 ) * direction );
+            break;
+            case "motorcycles":
+                element.setVelocityX( ( Math.random() * 375 + 300 ) * direction );
+            break;
+        }
+    }
+
+    randomSpriteCar ( vehicleType ) {
+        const vehicle = arrayCurrentTypeVehicles[vehicleType];
+        
+        switch(vehicle) {
+            case "cars1":
+                return Math.floor(Math.random() * 9);
+            break;
+            case "cars2":
+                return Math.floor(Math.random() * 23);
+            break;
+            case "bigvehicles":
+                return Math.floor(Math.random() * 7);
+            break;
+            case "motorcycles":
+                return Math.floor(Math.random() * 3);
+            break;
+        }
+    }
+
+    randomCar ( vehicleType ) {
+        arrayCurrentTypeVehicles[vehicleType] = arrayTypeVehicles[Math.floor(Math.random() * arrayTypeVehicles.length)]
+        return arrayCurrentTypeVehicles[vehicleType];
+    }
+
     updateTime ( txtTime ) {
         this.currentTime--;
 
