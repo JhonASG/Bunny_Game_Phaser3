@@ -15,6 +15,7 @@ export class Movement {
         this.btnup = btnup;
         this.btndown = btndown;
         this.currentPosPlayer = currentPosPlayer;
+        this.posibleMovesPlayer = posibleMoves;
     }
     GetUpPlayerMovement (pos) {
         if (pos + 1 < posibleMoves.length) {
@@ -70,6 +71,13 @@ export class Movement {
                 this.player.anims.play(this.animsKey[1], true);
                 this.player.y = nextDownMove;
             }
+        }
+    }
+    UpdatePositionPlayerWhenDead (pos, player) {
+        if (player == 1) {
+            positionPlayerP1 = pos;
+        } else if (player == 2) {
+            positionPlayerP2 = pos;
         }
     }
 }

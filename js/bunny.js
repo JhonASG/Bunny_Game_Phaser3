@@ -6,7 +6,10 @@ import { drawingObjs } from "./drawer/drawObjs.js";
 let rabbit = [];
 let carrots = [];
 let groupsStars = 1;
-let playerQuantity = 2;
+let playerQuantity = 1;
+let level = 1;
+let levelName = "Easy";
+let modeName = "1 Player";
 let goUpP1 = false;
 let goDownP1 = false;
 let goUpP2 = false;
@@ -20,36 +23,13 @@ let groupLeftVehicles = "";
 let groupRightVehicles = "";
 const arrayTypeVehicles = ["cars1", "cars2", "bigvehicles", "motorcycles"]; // Array contain types of vehicles
 const arrayCurrentTypeVehicles = ["cars1", "cars2", "bigvehicles", "motorcycles"]; // Array contain current types of vehicles
+let musicPlay = true;
 
 class MainScene extends Phaser.Scene {
     constructor() {
         super("gameScene");
     }
-    preload () {
-        this.load.image("gameTiles", "../img/tilemap.png");
-        this.load.image("carrot", "../img/carrot.png");
-        this.load.tilemapTiledJSON("tilemap", "../img/tilemap_bunnygame.json");
-        this.load.spritesheet("cars1", "../img/cars.png", {
-            frameWidth: 140,
-            frameHeight: 70
-        });
-        this.load.spritesheet("cars2", "../img/cars2.png", {
-            frameWidth: 150,
-            frameHeight: 90
-        });
-        this.load.spritesheet("bigvehicles", "../img/bigvehicles.png", {
-            frameWidth: 250,
-            frameHeight: 100
-        });
-        this.load.spritesheet("motorcycles", "../img/motorcycle.png", {
-            frameWidth: 158,
-            frameHeight: 62.5
-        });
-        this.load.spritesheet("rabbit", "../img/rabbits.png", {
-            frameWidth: 40,
-            frameHeight: 40
-        });
-    }
+    preload () {}
     create () {
         const map = this.add.tilemap("tilemap");
         const tileset = map.addTilesetImage("Tilemap", "gameTiles");
@@ -64,10 +44,16 @@ class MainScene extends Phaser.Scene {
             map
         );
         rabbit = playerGame.createPlayer(this.physics, playerQuantity);
+        rabbit[0].name = "Bunny";
         rabbit[0].score = 0;
+        rabbit[0].direction = "up";
+        rabbit[0].death = 0;
 
         if ( playerQuantity == 2 ) {
+            rabbit[1].name = "Banny";
             rabbit[1].score = 0;
+            rabbit[1].direction = "up";
+            rabbit[1].death = 0;
         }
 
         const carrotsGame = new drawingObjs(
@@ -115,7 +101,7 @@ class MainScene extends Phaser.Scene {
         
         function collectCarrots ( player, carrot ) {
             rabbit[0].score += 10;
-            colliderCarrots(carrot, player, 200);
+            colliderCarrots(carrot, player, 200, this);
             scorePlayer.setText(rabbit[0].score);
         }
 
@@ -125,17 +111,24 @@ class MainScene extends Phaser.Scene {
     
             function collectCarrots2 ( player, carrot ) {
                 rabbit[1].score += 10;
-                colliderCarrots(carrot, player, 500);
+                colliderCarrots(carrot, player, 500, this);
                 scorePlayer.setText(rabbit[1].score);
             }
         }
 
-        function colliderCarrots ( carrot, player, posX ) {
+        function colliderCarrots ( carrot, player, posX, context ) {
+            const musicCarrot = context.sound.add("goal");
+            musicCarrot.play({
+                volume: 0.75,
+                loop: false,
+            });
             carrot.disableBody(true, true);
 
             if ( player.y ==  65 ) {
+                player.direction = "down";
                 carrot.enableBody(true, posX, 570, true, true);
             } else {
+                player.direction = "up";
                 carrot.enableBody(true, posX, 65, true, true);
             }
         }
@@ -196,9 +189,94 @@ class MainScene extends Phaser.Scene {
         limit2.body.setImmovable(true); //This limit is immovable
 
         //Add collision between vehicle and rabbits
-        this.physics.add.overlap(rabbit[0], groupRightVehicles, collisionRightCars, null, this);
-        this.physics.add.overlap(rabbit[0], groupLeftVehicles, collisionLeftCars, null, this);
+        this.physics.add.overlap(groupRightVehicles, rabbit[0], this.playerCollider, null, this);
+        this.physics.add.overlap(groupLeftVehicles, rabbit[0], this.playerCollider, null, this);
         
+        if (playerQuantity == 2) {
+            this.physics.add.overlap(groupRightVehicles, rabbit[1], this.playerCollider, null, this);
+            this.physics.add.overlap(groupLeftVehicles, rabbit[1], this.playerCollider, null, this);
+        }
+
+        //Add controls in screen tactils
+        if ( screen.width <= 900 ) {
+            this.add.image(50, 50, "arrow").setScale(0.5);
+            this.add.image(50, 575, "arrow").setScale(0.5).setFlip(true, true);
+
+            this.createZoneActionBtns("UpP1", 25, 25, 50, 50);
+            this.createZoneActionBtns("DownP1", 25, 550, 50, 50);
+            if ( playerQuantity == 2 ) {
+                this.add.image(650, 50, "arrow").setScale(0.5);
+                this.add.image(650, 575, "arrow").setScale(0.5).setFlip(true, true);
+                
+                this.createZoneActionBtns("UpP2", 625, 25, 50, 50);
+                this.createZoneActionBtns("DownP2", 625, 550, 50, 50);
+            }
+        }
+    }
+
+    createZoneActionBtns (btnName, posX, posY, width, height) {
+        const btn = this.add.zone(posX, posY, width, height);
+        btn.setOrigin(0, 0);
+        btn.setInteractive();
+        btn.on("pointerdown", () => this.actionMovementWithBtns(btnName, true));
+        btn.on("pointerup", () => this.actionMovementWithBtns(btnName, false));
+        btn.on("pointermove", () => this.actionMovementWithBtns(btnName, false));
+
+        //this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(btn);
+    }
+
+    actionMovementWithBtns (btn, stateBtn) {
+        switch(btn) {
+            case "UpP1":
+                goUpP1 = stateBtn;
+            break;
+            case "DownP1":
+                goDownP1 = stateBtn;
+            break;
+            case "UpP2":
+                goUpP2 = stateBtn;
+            break;
+            case "DownP2":
+                goDownP2 = stateBtn;
+            break;
+            default:
+                goUpP1 = false;
+                goDownP1 = false;
+                goUpP2 = false;
+                goDownP2 = false;
+            break;
+        }
+    }
+
+    playerCollider (player, vehicle) {
+        if (player.y == vehicle.y) {
+            const musicCrash = this.sound.add("crash");
+            musicCrash.play({
+                volume: 0.5,
+                loop: false,
+            });
+
+            player.death++;
+            if (player.direction == "up") {
+                if (rabbit[0] === player) {
+                    const updatePosPlayer = new Movement(player, null, null, null, null, null, 1);
+                    updatePosPlayer.UpdatePositionPlayerWhenDead( 0, 1 );
+                } else if (rabbit[1] === player) {
+                    const updatePosPlayer = new Movement(player, null, null, null, null, null, 2);
+                    updatePosPlayer.UpdatePositionPlayerWhenDead( 0, 2 );
+                }
+                player.y = 570;
+            } else {
+                if (rabbit[0] === player) {
+                    const updatePosPlayer = new Movement(player, null, null, null, null, null, 1);
+                    updatePosPlayer.UpdatePositionPlayerWhenDead( updatePosPlayer.posibleMovesPlayer.length - 1, 1 );
+                } else if (rabbit[1] === player) {
+                    const updatePosPlayer = new Movement(player, null, null, null, null, null, 2);
+                    updatePosPlayer.UpdatePositionPlayerWhenDead( updatePosPlayer.posibleMovesPlayer.length - 1, 2 );
+                }
+                player.y = 65;
+            }
+        }
     }
 
     newRightCar ( limit, element ) {
@@ -207,7 +285,7 @@ class MainScene extends Phaser.Scene {
         //Create new vehicle Right
         const vehicleType = element.y == 385 ? 2 : 3;
         const currentVehicle = groupRightVehicles.create(
-            900,
+            1000,
             element.y,
             this.randomCar(vehicleType),
             this.randomSpriteCar(vehicleType)
@@ -222,7 +300,7 @@ class MainScene extends Phaser.Scene {
         //Create new vehicle Left
         const vehicleType = element.y == 165 ? 0 : 1;
         const currentVehicle = groupLeftVehicles.create(
-            -100,
+            -200,
             element.y,
             this.randomCar(vehicleType),
             this.randomSpriteCar(vehicleType)
@@ -235,16 +313,16 @@ class MainScene extends Phaser.Scene {
 
         switch(vehicle) {
             case "cars1":
-                element.setVelocityX( ( Math.random() * 220 + 160 ) * direction );
+                element.setVelocityX( ( Math.random() * 220 + 160 ) * direction * level );
             break;
             case "cars2":
-                element.setVelocityX( ( Math.random() * 300 + 220 ) * direction );
+                element.setVelocityX( ( Math.random() * 300 + 220 ) * direction * level );
             break;
             case "bigvehicles":
-                element.setVelocityX( ( Math.random() * 200 + 100 ) * direction );
+                element.setVelocityX( ( Math.random() * 200 + 100 ) * direction * level );
             break;
             case "motorcycles":
-                element.setVelocityX( ( Math.random() * 375 + 300 ) * direction );
+                element.setVelocityX( ( Math.random() * 375 + 300 ) * direction * level );
             break;
         }
     }
@@ -307,16 +385,18 @@ class MainScene extends Phaser.Scene {
             1
         )
         
-        if (cursors.up.isDown) {
+        if (cursors.up.isDown || goUpP1) {
             if (stateAddMovement)
             {
                 stateAddMovement = false;
+                goUpP1 = false;
                 movementPlayer.AddMovementPlayer();
             }
-        } else if (cursors.down.isDown) {
+        } else if (cursors.down.isDown || goDownP1) {
             if (stateAddMovementDown)
             {
                 stateAddMovementDown = false;
+                goDownP1 = false;
                 movementPlayer.AddMovementPlayer();
             }
         }
@@ -342,16 +422,18 @@ class MainScene extends Phaser.Scene {
                 2
             );
 
-            if (keyObjUp.isDown) {
+            if (keyObjUp.isDown || goUpP2) {
                 if (stateAddMovementP2)
                 {
                     stateAddMovementP2 = false;
+                    goUpP2 = false;
                     movementPlayer.AddMovementPlayer();
                 }
-            } else if (keyObjDown.isDown) {
+            } else if (keyObjDown.isDown || goDownP2) {
                 if (stateAddMovementDownP2)
                 {
                     stateAddMovementDownP2 = false;
+                    goDownP2 = false;
                     movementPlayer.AddMovementPlayer();
                 }
             }
@@ -369,49 +451,319 @@ class Menu extends Phaser.Scene {
     constructor() {
         super("menuScene");
     }
-    preload () {}
-    create () {}
-    update () {}
+    preload () {
+        // Progress Bar
+        this.barPreLoadAssets();
+
+        this.load.image("gameTiles", "../img/tilemap.png");
+        this.load.image("carrot", "../img/carrot.png");
+        this.load.tilemapTiledJSON("tilemap", "../img/tilemap_bunnygame.json");
+        this.load.spritesheet("cars1", "../img/cars.png", {
+            frameWidth: 140,
+            frameHeight: 70
+        });
+        this.load.spritesheet("cars2", "../img/cars2.png", {
+            frameWidth: 150,
+            frameHeight: 90
+        });
+        this.load.spritesheet("bigvehicles", "../img/bigvehicles.png", {
+            frameWidth: 250,
+            frameHeight: 100
+        });
+        this.load.spritesheet("motorcycles", "../img/motorcycle.png", {
+            frameWidth: 158,
+            frameHeight: 62.5
+        });
+        this.load.spritesheet("rabbit", "../img/rabbits.png", {
+            frameWidth: 40,
+            frameHeight: 40
+        });
+        this.load.image("bg", "../img/background.jpg");
+        this.load.image("logo", "../img/BunnyGame.png");
+        this.load.image("faceRabbit", "../img/faceRabbit.png");
+        this.load.image("menuButtons", "../img/menuButtons.png");
+        this.load.image("levelButtons", "../img/levelButtons.png");
+        this.load.image("modeButtons", "../img/modeButtons.png");
+        this.load.image("controlsP1", "../img/Player1.png");
+        this.load.image("controlsP2", "../img/Player2.png");
+        this.load.image("arrow", "../img/arrow.png");
+        this.load.audio("music", "../sounds/FranticLevel.wav"); //
+        this.load.audio("goal", "../sounds/Rise06.mp3");
+        this.load.audio("crash", "../sounds/bzzzt.wav");
+    }
+
+    create () {
+        if ( musicPlay ) {
+            musicPlay = false;
+
+            const music = this.sound.add("music");
+            music.play({
+                volume: 0.5,
+                loop: true,
+            });
+        }
+
+        // Drawing the images preload on the canvas
+        this.add.image(420, 320, "bg").setScale(2);
+        this.add.image(400, 80, "logo");
+        this.add.image(180, 450, "faceRabbit");
+        this.add.image(530, 420, "menuButtons");
+
+        // Create the zone for clicking the buttons in the scene
+        this.createZoneActionBtns( "gameScene", 435, 235, 190, 80 );
+        this.createZoneActionBtns( "levelScene", 435, 335, 190, 80 );
+        this.createZoneActionBtns( "modeScene", 435, 432, 190, 80 );
+        this.createZoneActionBtns( "controlsScene", 435, 530, 190, 80 );
+        this.addInfoPlayer("Level: ", levelName, 70, 200);
+        this.addInfoPlayer("Mode: ", modeName, 70, 240);
+    }
+
+    barPreLoadAssets () {
+        let progressBar = this.add.graphics();
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        const loadingTxt = this.add.text(
+            (width / 2) -50,
+            (height / 2) - 20,
+            "Loading...",
+            { 
+                font: "bold 32px monospace", 
+                fill: "#ffffff", 
+                align: "center" 
+            }
+        );
+        const percentTxt = this.add.text(
+            width / 2,
+            (height / 2) -180,
+            "0%",
+            { 
+                font: "28px monospace", 
+                fill: "#ffffff", 
+                align: "center" 
+            }
+        );
+        const assetTxt = this.add.text(
+            (width / 2)-150,
+            (height / 2) -100,
+            "",
+            { 
+                font: "28px monospace", 
+                fill: "#ffffff", 
+                align: "center" 
+            }
+        );
+
+        this.load.on("progress", function (value) {
+            percentTxt.setText(parseInt(value * 100) + "%");
+            progressBar.clear();
+            progressBar.fillStyle(0xffffff, 1);
+            progressBar.fillRect(250, 280, 300 * value, 30);
+        });
+
+        this.load.on("fileprogress", function (file) {
+            assetTxt.setText("Loading asset: " + file.key);
+        });
+
+        this.load.on("complete", function () {
+            progressBar.destroy();
+            loadingTxt.destroy();
+            assetTxt.destroy();
+            percentTxt.destroy();
+        });
+    }
+
+    createZoneActionBtns (scene, posX, posY, width, height) {
+        const btn = this.add.zone(posX, posY, width, height);
+        btn.setOrigin(0, 0);
+        btn.setInteractive();
+        btn.once("pointerdown", () => this.redirectScene(scene));
+        // this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(btn);
+    }
+
+    addInfoPlayer(title, info, posX, posY) {
+        this.add.text(posX, posY, title + info, {
+            fontSize: 30,
+            fontStyle: "bold",
+            fill: "#000000"
+        });
+    }
+
+    redirectScene(scene) {
+        this.scene.start(scene);
+    }
 }
 class Level extends Phaser.Scene {
     constructor() {
         super("levelScene");
     }
     preload () {}
-    create () {}
-    update () {}
+    create () {
+        // Drawing the images preload on the canvas.
+        this.add.image(420, 320, "bg").setScale(2);
+        this.add.image(400, 80, "logo");
+        this.add.image(180, 450, "faceRabbit");
+        this.add.image(530, 420, "levelButtons");
+
+        // Create the zone for clicking the buttons in the scene.
+        this.createZoneActionBtns( 1, "Easy", 435, 235, 190, 80 );
+        this.createZoneActionBtns( 2, "Medium", 435, 335, 190, 80 );
+        this.createZoneActionBtns( 3, "Hard", 435, 432, 190, 80 );
+        this.createZoneActionBtns( 0, "Back", 435, 530, 190, 80 );
+    }
+
+    createZoneActionBtns (numlevel, nameLevel, posX, posY, width, height) {
+        const btn = this.add.zone(posX, posY, width, height);
+        btn.setOrigin(0, 0);
+        btn.setInteractive();
+
+        btn.once("pointerdown", () => this.setLevelGame(numlevel, nameLevel));
+        //this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(btn);
+    }
+
+    setLevelGame(numLevel, nameLevel) {
+        if ( numLevel != 0 ) {
+            levelName = nameLevel;
+            level = numLevel;
+        }
+        this.redirectScene("menuScene");
+    }
+
+    redirectScene(scene) {
+        this.scene.start(scene);
+    }
 }
 class Mode extends Phaser.Scene {
     constructor() {
         super("modeScene");
     }
     preload () {}
-    create () {}
-    update () {}
+    create () {
+        // Drawing the images preload on the canvas
+        this.add.image(420, 320, "bg").setScale(2);
+        this.add.image(400, 80, "logo");
+        this.add.image(180, 450, "faceRabbit");
+        this.add.image(530, 420, "modeButtons");
+
+        // Create the zone for clicking the buttons in the scene
+        this.createZoneActionBtns( "1 Player", 1, 435, 285, 190, 80 );
+        this.createZoneActionBtns( "2 Player", 2, 435, 385, 190, 80 );
+        this.createZoneActionBtns( "Back", 0, 435, 480, 190, 80 );
+    }
+
+    createZoneActionBtns (mode, numPlayers, posX, posY, width, height) {
+        const btn = this.add.zone(posX, posY, width, height);
+        btn.setOrigin(0, 0);
+        btn.setInteractive();
+        btn.once("pointerdown", () => this.setModeGame(mode, numPlayers));
+        //this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(btn);
+    }
+
+    setModeGame (mode, num) {
+        if ( num != 0 ) {
+            modeName = mode;
+            playerQuantity = num;
+        }
+        this.redirectScene("menuScene");
+    }
+
+    redirectScene(scene) {
+        this.scene.start(scene);
+    }
 }
 class Controls extends Phaser.Scene {
     constructor() {
         super("controlsScene");
     }
     preload () {}
-    create () {}
-    update () {}
+    
+    create () {
+        // Drawing the images preload on the canvas
+        this.add.image(420, 320, "bg").setScale(2);
+        this.add.image(400, 80, "logo");
+        this.add.image(180, 450, "faceRabbit");
+        this.add.image(430, 470, "controlsP1");
+        this.add.image(640, 470, "controlsP2");
+
+        //Add text for indicate what control is for every player
+        this.addInfoPlayer("Player 1", "", 355, 300);
+        this.addInfoPlayer("Player 2", "", 570, 300);
+
+        // Create the zone for clicking back to the menu
+        this.createZoneActionBtns("menuScene", 0, 0, 768, 672);
+    }
+
+    addInfoPlayer(title, info, posX, posY) {
+        this.add.text(posX, posY, title + info, {
+            fontSize: 32,
+            fontStyle: "bold",
+            fill: "#000000"
+        });
+    }
+
+    createZoneActionBtns (scene, posX, posY, width, height) {
+        const btn = this.add.zone(posX, posY, width, height);
+        btn.setOrigin(0, 0);
+        btn.setInteractive();
+        btn.once("pointerdown", () => this.redirectScene(scene));
+        //this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(btn);
+    }
+
+    redirectScene(scene) {
+        this.scene.start(scene);
+    }
 }
 class EndGame extends Phaser.Scene {
     constructor() {
         super("endScene");
     }
     preload () {}
-    create () {}
-    update () {}
+    create () {
+        // Drawing the images preload on the canvas
+        this.add.image(420, 320, "bg").setScale(2);
+        this.add.image(400, 80, "logo");
+        this.add.image(180, 450, "faceRabbit");
+
+        // Add information about the match of every player
+        this.addInfoPlayer("Name: ", rabbit[0].name, 120, 180);
+        this.addInfoPlayer("Score: ", rabbit[0].score, 120, 220);
+        this.addInfoPlayer("Death: ", rabbit[0].death, 120, 260);
+
+        if (playerQuantity == 2) {
+            this.addInfoPlayer("Name: ", rabbit[1].name, 450, 180);
+            this.addInfoPlayer("Score: ", rabbit[1].score, 450, 220);
+            this.addInfoPlayer("Death: ", rabbit[1].death, 450, 260);
+        }
+
+        this.addInfoPlayer("Level: ", levelName, 450, 550);
+        this.addInfoPlayer("Mode: ", modeName, 450, 590);
+
+        // Create the zone for clicking back to the menu
+        const backToMenu = this.add.zone(0, 0, 768, 672);
+        backToMenu.setOrigin(0,0);
+        backToMenu.setInteractive();
+        backToMenu.once("pointerdown", () => this.redirectScene("menuScene"));
+        // this.add.graphics().lineStyle(2, 0xff0000).strokeRectShape(backToMenu);
+    }
+
+    addInfoPlayer(title, info, posX, posY) {
+        this.add.text(posX, posY, title + info, {
+            fontSize: 30,
+            fontStyle: "bold",
+            fill: "#000000"
+        });
+    }
+
+    redirectScene(scene) {
+        this.scene.start(scene);
+    }
 }
 const config = {
     type: Phaser.AUTO,
     width: 768,
     height: 672,
     scene: [
-        MainScene,
         Menu,
+        MainScene,
         Level,
         Mode,
         Controls,
