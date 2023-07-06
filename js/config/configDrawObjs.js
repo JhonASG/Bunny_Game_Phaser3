@@ -8,11 +8,21 @@ export const drawPlayers = {
         "worldCollide": true
     },
     2: {
-        "width": 180,
-        "height": 400,
-        "asset": "secondPlayer",
+        "width": 500,
+        "height": 570,
+        "asset": "rabbit",
         "frame": 24,
         "bounce": 0.25,
         "worldCollide": true
+    }
+}
+
+export const drawCarrots = {
+    1: {
+        "quantity": 1,
+        "posX": 200,
+        "posY": 65,
+        "step": 300,
+        "bounce": 0.5
     }
 }
